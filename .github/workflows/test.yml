@@ -6,7 +6,6 @@ env:
   GH_PACKAGE_TOKEN: ${{ secrets.SEMVER_TOKEN }}
 
 jobs:
-
   test:
     name: Checks
     runs-on: ubuntu-latest
