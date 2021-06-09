@@ -1,0 +1,32 @@
+name: Pipeline
+
+on: [push]
+
+env:
+  GH_PACKAGE_TOKEN: ${{ secrets.SEMVER_TOKEN }}
+
+jobs:
+
+  test:
+    name: Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform/
+
+      - name: Run TFLint
+        uses: reviewdog/action-tflint@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          working_directory: "terraform"
+          reporter: github-pr-review # ReviewDog comment on PR conversation
+          fail_on_error: "true" # Fails pipeline run on TFLint errors
+          flags: "" # Overrides default '--module' flag for TFLint
