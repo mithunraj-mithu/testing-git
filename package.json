@@ -8,6 +8,7 @@
     "checkov": "docker run --rm -v `pwd`/terraform:/tf -t bridgecrew/checkov -d /tf -o junitxml | grep -v '^.\\[0m' > report.xml || true",
     "checkov:cli": "docker run --rm -v `pwd`/terraform:/tf -t bridgecrew/checkov -d /tf -o cli || true",
     "format": "terraform fmt terraform",
+    "prepare": "husky install",
     "terraform-init": "cd terraform && terraform init -backend-config=./backends/${TF_ENV}.conf",
     "tflint": "docker run --rm -v `pwd`/terraform:/data -t wata727/tflint",
     "tfsec": "docker run --rm -v `pwd`/terraform:/tf -t liamg/tfsec --format junit /tf > security-report.xml",
@@ -17,25 +18,17 @@
     "type": "git",
     "url": "git+https://github.com/alamy-ops/terraform-template"
   },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "npm run format && npm run tflint",
-      "pre-push": "npm run checkov"
-    }
-  },
   "keywords": [
     "terraform"
   ],
   "author": "Enable Squad",
   "license": "ISC",
   "devDependencies": {
-    "@alamy-ops/config-toolchain": "^4.1.3",
-    "@commitlint/cli": "^11.0.0",
-    "@commitlint/config-conventional": "^11.0.0",
-    "semantic-release": "^17.3.7",
-    "@semantic-release/changelog": "^5.0.1",
-    "@semantic-release/git": "^9.0.0",
-    "husky": "^4.3.0"
+    "@commitlint/cli": "^17.1.2",
+    "@commitlint/config-conventional": "^17.1.0",
+    "semantic-release": "^19.0.5",
+    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "husky": "^8.0.1"
   }
 }

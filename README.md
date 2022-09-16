@@ -2,7 +2,7 @@
 
 Template Terraform stack
 
-Currently using Terraform 0.14.x
+Currently using Terraform 1.x.x
 
 ## Deploying Infrastructure Upgrades
 
