@@ -1,6 +1,12 @@
 {
   "extends": ["@commitlint/config-conventional"],
   "rules": {
-    "subject-case": [0]
+    "subject-case": [0],
+    "header-max-length": [0, "always", 256],
+    "body-max-line-length": [0, "always", "Infinity"],
+    "body-max-length": [0, "always", "Infinity"],
+    "footer-leading-blank": [0, "never", 1],
+    "footer-max-length": [0, "always", "Infinity"],
+    "footer-max-line-length": [0, "always", "Infinity"]
   }
 }
