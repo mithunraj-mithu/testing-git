@@ -1,4 +1,5 @@
 resource "aws_iam_user" "demo_user" {
+  #checkov:skip=CKV_AWS_273:this is a demo user used for a template
   name = "iam_for_${var.service}-${terraform.workspace}"
   path = "/users/demo_user/"
 

@@ -11,6 +11,14 @@ terraform {
 }
 
 provider "aws" {
-  profile = var.profile
   region  = var.region
+  default_tags {
+    tags = {
+      Environment     = title(terraform.workspace)
+      Managed_by      = "Terraform"
+      Repository_name = "&"
+      Squad_name      = "&"
+      Org             = "Alamy"
+    }
+  }
 }
