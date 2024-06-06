@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.30.0"
+      version = "~> 5.52.0"
     }
   }
   backend "s3" {
@@ -14,11 +14,12 @@ provider "aws" {
   region  = var.region
   default_tags {
     tags = {
-      Environment     = title(terraform.workspace)
-      Managed_by      = "Terraform"
-      Repository_name = "&"
-      Squad_name      = "&"
-      Org             = "Alamy"
+      Service        = "template"
+      TeamName       = "template"
+      RepositoryName = "template"
+      CreatedBy      = "Terraform"
+      Environment    = title(terraform.workspace)
+      Org            = "Alamy"
     }
   }
 }
