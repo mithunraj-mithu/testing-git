@@ -1,164 +1,93 @@
 # Terraform Template
 
-Template Terraform stack
+Template Terraform stack — currently using Terraform 1.x.x
 
-Currently using Terraform 1.x.x
+## Quick Setup Checklist
 
-## Deploying Infrastructure Upgrades
+> Complete these steps after cloning/creating a repo from this template.
 
-If the infrastructure changes then follow the below instructions to deploy upgrades:
+- [ ] **Service name** — set the `service` default in `terraform/variables.tf` (deployment will fail if left as `terraform-template`)
+- [ ] **Provider version** — update the AWS provider version constraint in `terraform/providers.tf` to the [latest release](https://registry.terraform.io/providers/hashicorp/aws/latest)
+- [ ] **Default tags** — update `Service`, `TeamName`, `RepositoryName`, `Org` in `terraform/providers.tf`
+- [ ] **State backends** — set `bucket` and `key` in `terraform/backends/development.conf`, `staging.conf`, and `production.conf`
+- [ ] **GitHub Environments** — create `development`, `staging`, and `production` environments with `AWS_ROLE_ARN` variables
+- [ ] **Infrastructure** — replace the demo resources in `terraform/iam.tf` with your actual infrastructure
 
-1. Move to the terraform folder: ```cd terraform```
-2. Set the environment you want to work with as TF_ENV varible (development/staging/production) e.g.: ```export TF_ENV=development```
-3. Authenticate with AWS to ensure the relevant AWS profile is active for your chosen workspace
-4. Initialise the modules: ```terraform init -backend-config=./backends/${TF_ENV}.conf```
-5. Select / create workspace: ```terraform workspace select ${TF_ENV}``` (or workspace new for the first run)
-6. Check for updates to modules: ```terraform get -update=true```
-7. Check for changes/errors: ```terraform plan -var-file=./workspaces/${TF_ENV}.tfvars```
-8. Execute the deployment: ```terraform apply -var-file=./workspaces/${TF_ENV}.tfvars```
-9. Acquire the output variables for updating the task definitions (when changed): ```terraform output```
+## Template Setup
 
-## Switching between environments
+Details for each checklist item above:
 
-To deploy stacks to different environments you need to switch backend configs using the ```-backend-config ``` flag of ```terraform init``` and use the appropriate .tfvars file in the /workspaces folder.
+| File                                  | What to change                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `terraform/variables.tf`              | Set `service` default to your service name (deployment will fail if left as `terraform-template`) |
+| `terraform/providers.tf`              | Update AWS provider version and `default_tags` (see [Provider Version](#provider-version) below)  |
+| `terraform/backends/development.conf` | Set `bucket` and `key` to your project's state bucket/path                                        |
+| `terraform/backends/staging.conf`     | Set `bucket` and `key` to your project's state bucket/path                                        |
+| `terraform/backends/production.conf`  | Set `bucket` and `key` to your project's state bucket/path                                        |
+| `terraform/iam.tf`                    | Replace demo resources with your actual infrastructure                                            |
 
-If you switch environments/backends after having run ```terraform plan``` in another environment **DO NOT COPY THE EXISTING STATE TO THE NEW BACKEND**
+### Provider Version
 
-## Outputs available after deployment
+The template ships with a pinned AWS provider version that may be outdated. After cloning, update `terraform/providers.tf` to the latest version:
 
-Once deployed the following useful values are accessible by running ```terraform output```
+```hcl
+# terraform/providers.tf
+aws = {
+  source  = "hashicorp/aws"
+  version = "~> 5.82.0"  # ← check registry.terraform.io for latest
+}
+```
 
-- Bucket ARN
-- Ingest bulk access key - For bulk ingestion of content
-- Ingest bulk secret key
+The `~>` (pessimistic) constraint allows patch updates (e.g. `5.82.1`) but blocks minor/major bumps. Pin to the latest minor version at the time you create your repo, then let Dependabot propose upgrades going forward.
+
+## Deploying
+
+Infrastructure is deployed via CI/CD pipelines only. Manual deployments should be performed by a DevOps engineer when required.
 
 ## Project Layout
 
-The following files are in the root of the project:
-- .github/workflows - configuration for Github actions
-- .gitignore - set of files that Git will ignore.
-- .nvmrc - configuration for Node version manager.
-- package.json - configuration for Node.
-- package-lock.json - configuration for Node.
-- README.md - this README.
-
-The Terraform files should live in the 'terraform' subfolder as this is where both the linter
-and the validator will look for files to check.
-Conventions and other useful information can be found here:
-* [Setup](terraform/README.md)
-* [Workspace configuration](terraform/workspaces/README.md)
-
-## Technology Used
-
-* [checkov] - Code analysis tool for Infrastructure-as-code.
-* [docker] - Open platform for running applications in containers.
-* [husky] - Provides git hooks for pre-commit and pre-push.
-* [node.js] - A Javascript runtime built on Chrome's V8 Javascript engine.
-* [nvm] - Node Version Manager.
-* [semantic-release] - The semantic-release package which manages the versioning.
-* [tflint] - A Terraform Linter.
-
-### Node
-
-This terraform project uses node to provide the semantic-release functionality.
-
-### Node version manager
-
-To make sure we are using a consistent version of node, we make use of the Node version manager.
-The version is specified in the .npmrc file and can be selected by running:
-```bash
-nvm use
+```
+.github/workflows/      CI/CD pipelines (test, release, deploy)
+.github/dependabot.yml  Automated GitHub Actions updates
+terraform/              All Terraform configuration
+CONTRIBUTING.md         Commit conventions and semver guide
 ```
 
-### Terraform Linter
+## CI/CD
 
-A Terraform linter [tflint] is included in this project to help reduce errors.
-It is run via a dockerised container and is invoked during the Jenkins build.
-It can also be run locally using:
-```bash
-npm run tflint
+**Test** (PRs and pushes to main) — terraform fmt, TFLint, TruffleHog, Trivy
+
+**Release** (merge to main) — semver bump from conventional commits, git tag, GitHub Release with changelog
+
+**Deploy** — three-stage promotion tied to the git workflow:
+
+```
+PR opened/sync ──► terraform plan + deploy dev
+PR closed ──────► terraform destroy dev
+merge to main ──► deploy staging
+manual trigger ──► deploy production (pick a tag)
 ```
 
-### Terraform Validation Tool
+| Stage       | Trigger                   | Workflow          | Environment   |
+| ----------- | ------------------------- | ----------------- | ------------- |
+| Plan        | PR opened/sync            | `dev-staging.yml` | —             |
+| Development | PR opened/sync            | `dev-staging.yml` | `development` |
+| Cleanup     | PR closed                 | `dev-staging.yml` | `development` |
+| Staging     | Merge to main             | `dev-staging.yml` | `staging`     |
+| Production  | Manual (tag + plan/apply) | `production.yml`  | `production`  |
 
-A Terraform validator [checkov] is included in this project to help detect configuration errors.
-It is run via a dockerised container and is invoked during the Jenkins build.
-It can also be run locally using:
-```bash
-npm run checkov
-```
-Alternatively, to get the cli output which is more human readable:
-```bash
-npm run checkov:cli
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions.
 
-Note: the dockerised container throws out some spurious escape characters after producing the
-junit xml output. These are being stripped off using "grep -v '^.\[0m'" since this is more portable
-than using "head -n -2" to trim off the bottom two lines.
+## Local Development
 
-### Terraform Security Check
-
-A Terraform security check [tfsec] is included in this project to help detect security issues.
-This is NOT currently run via Jenkins because it typically requires `terraform init`.
-It can be run locally via a dockerised container to produce `security-report.xml` with:
 ```bash
-npm run tfsec
-```
-Alternatively, to get the cli output which is more human readable:
-```bash
-npm run tfsec:cli
+terraform fmt -recursive terraform/   # format
+tflint --chdir=terraform/              # lint
 ```
 
-Note: if the terraform relies on other modules, then `terraform init` will need running first.
-The following is provided for convenience but see [Terraform](Terraform.md) regarding the use
-of `tfenv` to manage terraform versions.
-```bash
-npm run terraform-init
-```
+## Technology
 
-### Terraform Formatter
-
-To help produce consistently formatted terraform files, the "format" script is included in the
-package.json file. This runs "terraform fmt" recursively over the terraform folder structure.
-It can be run with:
-```bash
-npm run format
-```
-
-### husky
-
-Husky helps enforce commit message conventions, and provides some pre-commit and pre-push validation
-for the terraform files to help catch errors in configuration.
-
-Note:
-Husky can cause issues as it no longer supports `nvm`. On a unix based machine it is possible
-to add some support by adding a `.huskyrc` file to your home directory:
-```bash
-if [ -s '.nvmrc' ]; then
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm use > /dev/null
-fi
-```
-
-### Semantic Release - Commit style
-
-It is recommended for clarity that the ticket reference is included in the commit message body, the format should be as follows:
-
-`fix|feat|perf(<short_feature_name>): <ticket> - <description_of_change>`
-
-Here is an example of the release type that will be done based on a commit messages.
-
-| Commit message  | Release type               |
-|-----------------|----------------------------|
-| `fix(logging): TICKET-1234 - Additional logging`  | Patch Release |
-| `feat(publish-endpoint): TICKET-2345 - Addition of the /publish endpoint to the API` | ~~Minor~~ Feature Release  |
-| `perf(event-model): TICKET-3456 - Event model update `<br><br>`BREAKING CHANGE: The time attribute has been removed.` | ~~Major~~ Breaking Release |
-
-[checkov]:https://www.checkov.io/
-[docker]:https://www.docker.com/
-[husky]:https://github.com/typicode/husky
-[node.js]:https://nodejs.org
-[nvm]:https://github.com/creationix/nvm
-[semantic-release]:https://github.com/semantic-release/semantic-release
-[tflint]:https://github.com/terraform-linters/tflint
+[terraform](https://www.terraform.io/) |
+[tflint](https://github.com/terraform-linters/tflint) |
+[trivy](https://github.com/aquasecurity/trivy) |
+[trufflehog](https://github.com/trufflesecurity/trufflehog)

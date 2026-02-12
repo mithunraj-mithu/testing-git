@@ -6,7 +6,7 @@ resource "aws_iam_user" "demo_user" {
   tags = {
     Org : "Alamy",
     Environment : title(terraform.workspace),
-    Service : "${var.service}"
+    Service : var.service
     Name : "${var.service}-${terraform.workspace}"
   }
 }

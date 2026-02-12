@@ -1,0 +1,79 @@
+name: Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to deploy (e.g. v1.2.0)"
+        required: true
+        type: string
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      # TODO: Uncomment and configure
+      # - uses: aws-actions/configure-aws-credentials
+      #     with:
+      #       role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      #       aws-region: eu-west-1
+      # - run: |
+      #     terraform -chdir=terraform init -backend-config=backends/production.conf
+      #     terraform -chdir=terraform plan
+      - name: Summary
+        run: |
+          echo "## Terraform Plan (Production)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action:** ${{ inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Setup Required" >> $GITHUB_STEP_SUMMARY
+          echo "1. Create a \`production\` GitHub Environment with required reviewers" >> $GITHUB_STEP_SUMMARY
+          echo "2. Add \`AWS_ROLE_ARN\` variable to the environment" >> $GITHUB_STEP_SUMMARY
+          echo "3. Update \`terraform/backends/production.conf\` with your state bucket" >> $GITHUB_STEP_SUMMARY
+          echo "4. Uncomment the AWS and Terraform steps in this workflow" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy to Production
+    if: inputs.action == 'apply'
+    needs: plan
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      # TODO: Uncomment and configure
+      # - uses: aws-actions/configure-aws-credentials
+      #     with:
+      #       role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      #       aws-region: eu-west-1
+      # - run: |
+      #     terraform -chdir=terraform init -backend-config=backends/production.conf
+      #     terraform -chdir=terraform apply -auto-approve
+      - name: Summary
+        run: |
+          echo "## Deploy to Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Placeholder — uncomment Terraform steps to enable" >> $GITHUB_STEP_SUMMARY
